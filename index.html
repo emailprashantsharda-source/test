@@ -73,17 +73,84 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   messagingSenderId: "267735481945",
   appId: "1:267735481945:web:92fff864940a572ccefb48"
 };
-window.sendOTP=function(){if(!_auth){_showMsg('App load ho raha hai, 2 sec baad try karein','warn');return;}var ph=(document.getElementById('phone-input').value||'').trim();if(!/^[6-9][0-9]{9}$/.test(ph)){_showMsg('Valid 10-digit number daalo','err');return;}_showMsg('OTP bheja ja raha hai...','ok');if(!window._rv){window._rv=new firebase.auth.RecaptchaVerifier('recaptcha-container',{size:'invisible',callback:function(){},"expired-callback":function(){window._rv=null;}});}_auth.signInWithPhoneNumber('+91'+ph,window._rv).then(function(r){window._cr=r;document.getElementById('otp-section').style.display='block';document.getElementById('send-otp-btn').style.display='none';document.getElementById('phone-input').disabled=true;_showMsg('OTP bheja +91 '+ph+' pe','ok');document.getElementById('otp-input').focus();}).catch(function(e){window._rv=null;_showMsg(_fe(e),'err');});};
-window.verifyOTP=function(){var c=(document.getElementById('otp-input').value||'').trim();if(c.length!==6){_showMsg('6-digit OTP daalo','err');return;}if(!window._cr){_showMsg('Pehle OTP bhejein','err');return;}_showMsg('Verify ho raha hai...','ok');window._cr.confirm(c).then(function(r){var u=r.user;window.currentUserId=u.uid;return _su(u);}).then(function(){return window.loadDashboard();}).then(function(){_showApp();}).catch(function(e){_showMsg(_fe(e),'err');});};
-window.addSale=function(amount,pt){if(!_db||!amount||amount<=0)return;var sid=window.currentUserId;if(!sid)return;var today=new Date().toISOString().split('T')[0];_db.collection('transactions').add({shopId:sid,amount:amount,paymentType:pt,date:today,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){return _db.collection('daily_logs').where('shopId','==',sid).where('date','==',today).get();}).then(function(snap){var inc=firebase.firestore.FieldValue.increment;if(snap.empty){return _db.collection('daily_logs').add({shopId:sid,date:today,totalSales:amount,cash:pt==='cash'?amount:0,upi:pt==='upi'?amount:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});}else{return snap.docs[0].ref.update({totalSales:inc(amount),cash:inc(pt==='cash'?amount:0),upi:inc(pt==='upi'?amount:0)});}}).then(function(){window.loadDashboard();}).catch(function(e){console.error('addSale:',e);});};
-window.loadDashboard=function(){if(!_db)return Promise.resolve();var sid=window.currentUserId;if(!sid)return Promise.resolve();var today=new Date().toISOString().split('T')[0];return _db.collection('daily_logs').where('shopId','==',sid).where('date','==',today).get().then(function(snap){var t=0,cash=0,upi=0;if(!snap.empty){var d=snap.docs[0].data();t=d.totalSales||0;cash=d.cash||0;upi=d.upi||0;}window.fbDash={totalSales:t,cash:cash,upi:upi};var fmt=function(n){return 'Rs.'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:1});};var p=function(id,v){var e=document.getElementById(id);if(e)e.textContent=fmt(v);};p('db-total',t);p('db-cash',cash);p('db-upi',upi);}).catch(function(e){console.error('dash:',e);});};
-function resetLogin(){document.getElementById('otp-section').style.display='none';document.getElementById('send-otp-btn').style.display='block';document.getElementById('phone-input').disabled=false;document.getElementById('phone-input').value='';document.getElementById('otp-input').value='';document.getElementById('login-msg').style.display='none';window._cr=null;window._rv=null;document.getElementById('phone-input').focus();}
-window.addEventListener('load',function(){try{if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);_auth=firebase.auth();_db=firebase.firestore();_auth.useDeviceLanguage();_auth.onAuthStateChanged(function(u){if(u){window.currentUserId=u.uid;window.loadDashboard().then(function(){_showApp();});}else{document.getElementById('login-screen').style.display='flex';document.getElementById('app').style.display='none';}});}catch(e){console.error(e);_showMsg('Firebase error: '+e.message,'err');}});
-function _su(u){if(!_db)return Promise.resolve();var r=_db.collection('users').doc(u.uid);return r.get().then(function(s){if(!s.exists){return r.set({phone:u.phoneNumber,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){return _db.collection('shops').doc(u.uid).set({ownerId:u.uid,name:'My Pan Shop',createdAt:firebase.firestore.FieldValue.serverTimestamp()});});}});}
-function _showApp(){document.getElementById('login-screen').style.display='none';document.getElementById('app').style.display='block';if(typeof render==='function')render();}
-function _showMsg(msg,type){var el=document.getElementById('login-msg');if(!el)return;el.textContent=msg;if(type==='err'){el.style.color='#dc2626';el.style.background='#fef2f2';el.style.borderColor='#fecaca';}else if(type==='warn'){el.style.color='#92400e';el.style.background='#fef3c7';el.style.borderColor='#fde68a';}else{el.style.color='#15803d';el.style.background='#f0fdf4';el.style.borderColor='#bbf7d0';}el.style.display='block';}
-function _fe(e){var c=e.code||'';if(c.indexOf('invalid-phone')>=0)return 'Invalid phone number';if(c.indexOf('too-many-requests')>=0)return 'Bahut attempts. Thodi der baad try karein';if(c.indexOf('invalid-verification-code')>=0)return 'Galat OTP. Dobara check karein';if(c.indexOf('code-expired')>=0)return 'OTP expire ho gaya. Naya maangein';if(c.indexOf('network')>=0)return 'Network error. Internet check karein';if(c.indexOf('captcha')>=0||c.indexOf('auth-domain')>=0)return 'reCAPTCHA error. App website pe host karein (netlify.com/drop) - file:// se OTP nahi chalta';return e.message||'Kuch gadbad. Dobara try karein';}
-</script>
+window.sendOTP=function(){
+if(!_auth){
+_showMsg('App load ho raha hai, 2 sec baad try karein','warn');
+return;
+}
+
+var ph=(document.getElementById('phone-input').value||'').trim();
+
+if(!/^[6-9][0-9]{9}$/.test(ph)){
+_showMsg('Valid 10-digit number daalo','err');
+return;
+}
+
+_showMsg('OTP bheja ja raha hai...','ok');
+
+// ✅ FIX: Always recreate recaptcha properly
+if(window._rv){
+try{window._rv.clear();}catch(e){}
+}
+
+window._rv=new firebase.auth.RecaptchaVerifier('recaptcha-container',{
+size:'invisible'
+});
+
+window._rv.render();
+
+_auth.signInWithPhoneNumber('+91'+ph,window._rv)
+.then(function(r){
+window._cr=r;
+
+```
+document.getElementById('otp-section').style.display='block';
+document.getElementById('send-otp-btn').style.display='none';
+document.getElementById('phone-input').disabled=true;
+
+_showMsg('OTP bheja +91 '+ph+' pe','ok');
+document.getElementById('otp-input').focus();
+```
+
+})
+.catch(function(e){
+window._rv=null;
+_showMsg(_fe(e),'err');
+});
+};
+
+window.verifyOTP=function(){
+var c=(document.getElementById('otp-input').value||'').trim();
+
+if(c.length!==6){
+_showMsg('6-digit OTP daalo','err');
+return;
+}
+
+if(!window._cr){
+_showMsg('Pehle OTP bhejein','err');
+return;
+}
+
+_showMsg('Verify ho raha hai...','ok');
+
+window._cr.confirm(c)
+.then(function(r){
+var u=r.user;
+window.currentUserId=u.uid;
+return _su(u);
+})
+.then(function(){
+return window.loadDashboard();
+})
+.then(function(){
+_showApp();
+})
+.catch(function(e){
+_showMsg(_fe(e),'err');
+});
+};
+
 
 <div id="login-screen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(150deg,#fff8f0,#fef3c7);padding:20px">
   <div style="width:100%;max-width:380px">
