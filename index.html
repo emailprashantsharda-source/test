@@ -65,8 +65,14 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 </script>
 
 <script>
-var firebaseConfig={apiKey:"YOUR_API_KEY",authDomain:"YOUR_PROJECT_ID.firebaseapp.com",projectId:"YOUR_PROJECT_ID",storageBucket:"YOUR_PROJECT_ID.appspot.com",messagingSenderId:"YOUR_MESSAGING_SENDER_ID",appId:"YOUR_APP_ID"};
-var _auth=null,_db=null;
+var const firebaseConfig = {
+  apiKey: "AIzaSyBxAbTksCZJY6gaRVWpmb9leSHB41oArug",
+  authDomain: "claude-test-7th-april.firebaseapp.com",
+  projectId: "claude-test-7th-april",
+  storageBucket: "claude-test-7th-april.firebasestorage.app",
+  messagingSenderId: "267735481945",
+  appId: "1:267735481945:web:92fff864940a572ccefb48"
+};
 window.sendOTP=function(){if(!_auth){_showMsg('App load ho raha hai, 2 sec baad try karein','warn');return;}var ph=(document.getElementById('phone-input').value||'').trim();if(!/^[6-9][0-9]{9}$/.test(ph)){_showMsg('Valid 10-digit number daalo','err');return;}_showMsg('OTP bheja ja raha hai...','ok');if(!window._rv){window._rv=new firebase.auth.RecaptchaVerifier('recaptcha-container',{size:'invisible',callback:function(){},"expired-callback":function(){window._rv=null;}});}_auth.signInWithPhoneNumber('+91'+ph,window._rv).then(function(r){window._cr=r;document.getElementById('otp-section').style.display='block';document.getElementById('send-otp-btn').style.display='none';document.getElementById('phone-input').disabled=true;_showMsg('OTP bheja +91 '+ph+' pe','ok');document.getElementById('otp-input').focus();}).catch(function(e){window._rv=null;_showMsg(_fe(e),'err');});};
 window.verifyOTP=function(){var c=(document.getElementById('otp-input').value||'').trim();if(c.length!==6){_showMsg('6-digit OTP daalo','err');return;}if(!window._cr){_showMsg('Pehle OTP bhejein','err');return;}_showMsg('Verify ho raha hai...','ok');window._cr.confirm(c).then(function(r){var u=r.user;window.currentUserId=u.uid;return _su(u);}).then(function(){return window.loadDashboard();}).then(function(){_showApp();}).catch(function(e){_showMsg(_fe(e),'err');});};
 window.addSale=function(amount,pt){if(!_db||!amount||amount<=0)return;var sid=window.currentUserId;if(!sid)return;var today=new Date().toISOString().split('T')[0];_db.collection('transactions').add({shopId:sid,amount:amount,paymentType:pt,date:today,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){return _db.collection('daily_logs').where('shopId','==',sid).where('date','==',today).get();}).then(function(snap){var inc=firebase.firestore.FieldValue.increment;if(snap.empty){return _db.collection('daily_logs').add({shopId:sid,date:today,totalSales:amount,cash:pt==='cash'?amount:0,upi:pt==='upi'?amount:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()});}else{return snap.docs[0].ref.update({totalSales:inc(amount),cash:inc(pt==='cash'?amount:0),upi:inc(pt==='upi'?amount:0)});}}).then(function(){window.loadDashboard();}).catch(function(e){console.error('addSale:',e);});};
